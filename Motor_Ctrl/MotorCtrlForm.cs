@@ -18,10 +18,11 @@ namespace Motor_Ctrl
     {
         private string _cTime; // 日志记录的当前时间
 
-        public double[] SensCorPar = new double[3] {0.001, 0.001, 0.001}; // 传感器修正系数（编码器, 光栅, 磁栅）
+        public double[] SensCorPar = new double[3] {-1 / 0.623, -1 / 0.623, -1 / 0.623 }; // 传感器修正系数（编码器, 光栅, 磁栅）
+        public double[] SensBiasPar = new double[3] {0, 0, 0}; // 传感器修正偏置量（编码器, 光栅, 磁栅）
 
-        public double PosLimitMax = 320000; // 左软限位
-        public double PosLimitMin = -35000; // 右软限位
+        public double PosLimitMax = 78; // 左软限位
+        public double PosLimitMin = -8; // 右软限位
 
         public double VelLimitMin = 0.2; // 速度限制最小值
         public double VelLimitMax = 20; // 速度限制最大值
@@ -66,12 +67,12 @@ namespace Motor_Ctrl
 
         public bool MotorIsMoving = false; // 电机在运动
 
-        public double HomePos = 0; // 原点位置
-        public double EncPos = 0;
-        public double RelPos = 0; // 相对位置 = 绝对位置 - 原点位置
-        public double AbsPos = 0; // 绝对位置
-        public double AbsPos0 = 0; // 上一次的绝对位置，用于求 CurrVel 当前速度
-        public double CurrVel = 0; // 当前速度
+        public double HomePos = 0; // 原点位置 单位 Pulse
+        public double EncPos = 0; // 编码器读到的位置（比如，对于编码器 10000 Pulse 读到的是62000）
+        public double RelPos = 0; // 相对位置 = 绝对位置 - 原点位置 单位 Pulse
+        public double AbsPos = 0; // 绝对位置 单位 Pulse
+        public double AbsPos0 = 0; // 上一次的绝对位置，用于求 CurrVel 当前速度 单位 Pulse
+        public double CurrVel = 0; // 当前速度 单位 Pulse/ms
 
         public bool SoftLimit = true; // 软限位打开
         public bool VelLimit = true; // 速度限制打开
@@ -163,13 +164,13 @@ namespace Motor_Ctrl
             
             {
                 HandyVel = 5; // 不在结构体之内
-                TJog.acc = 10.0;
-                TJog.dec = 10.0;
-                TJog.smooth = 0.2; // 平滑系数 [0,1）越大越平稳
+                TJog.acc = 1.0;
+                TJog.dec = 1.0;
+                TJog.smooth = 0.3; // 平滑系数 [0,1）越大越平稳
             }
             {
-                TTrap.acc = 10.0;
-                TTrap.dec = 10.0;
+                TTrap.acc = 1.0;
+                TTrap.dec = 1.0;
                 TTrap.velStart = 0; // 起跳速度
                 TTrap.smoothTime = (short)(TJog.smooth * 50); // 平滑时间
             }
@@ -731,6 +732,13 @@ namespace Motor_Ctrl
             TTrap.smoothTime = (short)(double.Parse(LnrSmCoef_Tb.Text) * 50);
         }
 
+        /*******Crd Mode***************************************************/
+
+
+
+
+
+
         /******************************************************************/
 
         public double GetPosFromSensor(short AxisNo)
@@ -742,14 +750,10 @@ namespace Motor_Ctrl
             sRtn = gts.mc.GT_GetEncPos(AxisNo, out pValue, 1, out pClock);
             if (sRtn == 0)
             {
-                EncPos = pValue * SensCorPar[CurrEncoder]; // TODO 暂时不知道 EncPos 有什么用
-                AbsPos = pValue * SensCorPar[CurrEncoder];
-                
-                //ActualPosTb.Text = ActualPos.ToString(); // UI没有
+                EncPos = pValue;
+
+                AbsPos = pValue * SensCorPar[CurrEncoder] + SensBiasPar[CurrEncoder];
                 RelPos = AbsPos - HomePos;
-                //if (CheckedSoftLimit(EncPos)) // TODO 软限位检查未完成
-                //{
-                //}
                 return AbsPos;
             }
             else
@@ -1200,14 +1204,14 @@ namespace Motor_Ctrl
         private void UnitSelect_Cbb_SelectedIndexChanged(object sender, EventArgs e) // 改变全局单位下拉框
         {
             Unit = UnitSelect_Cbb.SelectedIndex;
-            if (Unit == 0)
-            {
-                UI_pulse_cvt_mm();
-            }
-            else if(Unit == 1)
-            {
-                UI_mm_cvt_pulse();
-            }
+            //if (Unit == 0)
+            //{
+            //    UI_pulse_cvt_mm();
+            //}
+            //else if(Unit == 1)
+            //{
+            //    UI_mm_cvt_pulse();
+            //}
 
         }
 
@@ -1235,7 +1239,7 @@ namespace Motor_Ctrl
             Thread.Sleep(500);
             ActRecord("FindZero Ok!");
             Set2ZeroPoint(AxisNo);
-            ZeroPos_Lb.Text = HomePos.ToString("0.0");
+            ZeroPos_Lb.Text = (HomePos / 1000).ToString("0.0");
             if (ModeActivated == 0)
             {
                 JogModeAct();
@@ -1313,10 +1317,6 @@ namespace Motor_Ctrl
             LnrParmSet_Btm.BackColor = Color.LightGreen;
         }
 
-        private void Back2Zero_Btn_Click(object sender, EventArgs e) // 回零点按钮
-        {
-
-        }
 
         private void MoveForward_Btn_MouseDown(object sender, MouseEventArgs e) // 手动正向 按下
         {
@@ -1377,14 +1377,22 @@ namespace Motor_Ctrl
             LnrAbsPos_Tb.Enabled = true;
         }
 
+
+        private void Back2Zero_Btn_Click(object sender, EventArgs e) // 回零点按钮
+        {
+            CheckMotorIsOnDlg();
+            SetPos(AxisNo, 0);
+            CommandUpdate(AxisNo);
+        }
+
         private void LnrIncrePos_Tb_Leave(object sender, EventArgs e) // 增量位置，焦点离开
         {
-            AutoAimIncre = double.Parse(LnrIncrePos_Tb.Text);
+            AutoAimIncre = double.Parse(LnrIncrePos_Tb.Text) * 1000;
         }
 
         private void LnrAbsPos_Tb_Leave(object sender, EventArgs e) // 绝对位置，焦点离开
         {
-            AutoAimAbs = double.Parse(LnrAbsPos_Tb.Text);
+            AutoAimAbs = double.Parse(LnrAbsPos_Tb.Text) * 1000;
         }
 
         private void LnrStart_Btn_Click(object sender, EventArgs e) // 启动按钮
@@ -1394,17 +1402,17 @@ namespace Motor_Ctrl
             GetPos(AxisNo, out PulsePos);
             if (IncreModeActivated) // 增量模式
             {
-                pulse = (int) (PulsePos  + AutoAimIncre / SensCorPar[CurrEncoder]); // TODO 这么写是不对的 传感器的值和 pulse 值应该有一个换算系数
+                pulse = (int) (PulsePos  + AutoAimIncre);
             }
             else // 绝对模式
             {
-                pulse = (int) (AutoAimAbs / SensCorPar[CurrEncoder]);
+                pulse = (int) (AutoAimAbs);
             }
             SetPos(AxisNo,pulse);
             CommandUpdate(AxisNo);
         }
 
-        private void About_Btn_Click(object sender, EventArgs e)
+        private void About_Btn_Click(object sender, EventArgs e) // 关于按钮
         {
 
         }
@@ -1415,12 +1423,11 @@ namespace Motor_Ctrl
             GetStatusAxis(AxisNo);
             PrfPos = GetPrfModeOfAxis(AxisNo);
             if (CurrEncoder != -1) GetPosFromSensor(AxisNo);
-            AbsPos_Lb.Text = AbsPos.ToString("0.0");
-            RelPos_Lb.Text = RelPos.ToString("0.0");
-
-            
-            CurrVel = Math.Abs(AbsPos - AbsPos0) / GetStatus_Tmr.Interval * 1000;
-            CurrVel_Lb.Text = CurrVel.ToString("0.0");
+            AbsPos_Lb.Text = (AbsPos / 1000).ToString("0.0");
+            RelPos_Lb.Text = (RelPos / 1000).ToString("0.0");
+ 
+            CurrVel = Math.Abs(AbsPos - AbsPos0) / GetStatus_Tmr.Interval;
+            CurrVel_Lb.Text = (CurrVel).ToString("0.000");
         }
 
         private void HandyMode_Tmr_Tick(object sender, EventArgs e) // 手动模式的定时器，轮询按键状态
@@ -1461,7 +1468,5 @@ namespace Motor_Ctrl
         {
             InitializeComponent();
         }
-
-
     }
 }

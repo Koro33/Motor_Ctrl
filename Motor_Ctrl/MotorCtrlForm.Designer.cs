@@ -108,13 +108,36 @@
             this.GetStatus_Tmr = new System.Windows.Forms.Timer(this.components);
             this.About_Btn = new System.Windows.Forms.Button();
             this.HandyMode_Tmr = new System.Windows.Forms.Timer(this.components);
+            this.label11 = new System.Windows.Forms.Label();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.label12 = new System.Windows.Forms.Label();
+            this.label13 = new System.Windows.Forms.Label();
+            this.textBox1 = new System.Windows.Forms.TextBox();
+            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.label14 = new System.Windows.Forms.Label();
+            this.label16 = new System.Windows.Forms.Label();
+            this.button1 = new System.Windows.Forms.Button();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.label17 = new System.Windows.Forms.Label();
+            this.label25 = new System.Windows.Forms.Label();
+            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.textBox4 = new System.Windows.Forms.TextBox();
+            this.label26 = new System.Windows.Forms.Label();
+            this.label27 = new System.Windows.Forms.Label();
+            this.label28 = new System.Windows.Forms.Label();
+            this.textBox5 = new System.Windows.Forms.TextBox();
+            this.label29 = new System.Windows.Forms.Label();
+            this.button2 = new System.Windows.Forms.Button();
             this.PosVel_Gbx.SuspendLayout();
             this.ActLog_Gbx.SuspendLayout();
             this.LinearMotion_Gbx.SuspendLayout();
             this.HandyMode_Gbx.SuspendLayout();
             this.AutoMode_Gbx.SuspendLayout();
+            this.CircMotion_Gbx.SuspendLayout();
             this.Select_Gbx.SuspendLayout();
             this.Alarm_Gbx.SuspendLayout();
+            this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // Ctrl_Btn
@@ -150,6 +173,7 @@
             // 
             // PosVel_Gbx
             // 
+            this.PosVel_Gbx.Controls.Add(this.label11);
             this.PosVel_Gbx.Controls.Add(this.VelLmt_Lb);
             this.PosVel_Gbx.Controls.Add(this.PosLmt_Lb);
             this.PosVel_Gbx.Controls.Add(this.label10);
@@ -214,9 +238,9 @@
             this.PosUnit_Lb3.AutoSize = true;
             this.PosUnit_Lb3.Location = new System.Drawing.Point(183, 122);
             this.PosUnit_Lb3.Name = "PosUnit_Lb3";
-            this.PosUnit_Lb3.Size = new System.Drawing.Size(48, 20);
+            this.PosUnit_Lb3.Size = new System.Drawing.Size(55, 20);
             this.PosUnit_Lb3.TabIndex = 33;
-            this.PosUnit_Lb3.Text = "pulse";
+            this.PosUnit_Lb3.Text = "kPulse";
             // 
             // ZeroPos_Lb
             // 
@@ -241,27 +265,27 @@
             this.VelUnit_Lb1.AutoSize = true;
             this.VelUnit_Lb1.Location = new System.Drawing.Point(184, 93);
             this.VelUnit_Lb1.Name = "VelUnit_Lb1";
-            this.VelUnit_Lb1.Size = new System.Drawing.Size(75, 20);
+            this.VelUnit_Lb1.Size = new System.Drawing.Size(74, 20);
             this.VelUnit_Lb1.TabIndex = 30;
-            this.VelUnit_Lb1.Text = "pulse/ms";
+            this.VelUnit_Lb1.Text = "Pulse/ms";
             // 
             // PosUnit_Lb2
             // 
             this.PosUnit_Lb2.AutoSize = true;
             this.PosUnit_Lb2.Location = new System.Drawing.Point(184, 64);
             this.PosUnit_Lb2.Name = "PosUnit_Lb2";
-            this.PosUnit_Lb2.Size = new System.Drawing.Size(48, 20);
+            this.PosUnit_Lb2.Size = new System.Drawing.Size(55, 20);
             this.PosUnit_Lb2.TabIndex = 29;
-            this.PosUnit_Lb2.Text = "pulse";
+            this.PosUnit_Lb2.Text = "kPulse";
             // 
             // PosUnit_Lb1
             // 
             this.PosUnit_Lb1.AutoSize = true;
             this.PosUnit_Lb1.Location = new System.Drawing.Point(184, 35);
             this.PosUnit_Lb1.Name = "PosUnit_Lb1";
-            this.PosUnit_Lb1.Size = new System.Drawing.Size(48, 20);
+            this.PosUnit_Lb1.Size = new System.Drawing.Size(55, 20);
             this.PosUnit_Lb1.TabIndex = 28;
-            this.PosUnit_Lb1.Text = "pulse";
+            this.PosUnit_Lb1.Text = "kPulse";
             // 
             // CurrVel_Lb
             // 
@@ -327,16 +351,16 @@
             this.ActLogTb.Name = "ActLogTb";
             this.ActLogTb.ReadOnly = true;
             this.ActLogTb.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ActLogTb.Size = new System.Drawing.Size(391, 120);
+            this.ActLogTb.Size = new System.Drawing.Size(333, 120);
             this.ActLogTb.TabIndex = 6;
             // 
             // ActLog_Gbx
             // 
             this.ActLog_Gbx.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ActLog_Gbx.Controls.Add(this.ActLogTb);
-            this.ActLog_Gbx.Location = new System.Drawing.Point(617, 455);
+            this.ActLog_Gbx.Location = new System.Drawing.Point(612, 455);
             this.ActLog_Gbx.Name = "ActLog_Gbx";
-            this.ActLog_Gbx.Size = new System.Drawing.Size(403, 152);
+            this.ActLog_Gbx.Size = new System.Drawing.Size(345, 152);
             this.ActLog_Gbx.TabIndex = 7;
             this.ActLog_Gbx.TabStop = false;
             this.ActLog_Gbx.Text = "日志";
@@ -632,9 +656,9 @@
             this.PosUnit_Lb5.AutoSize = true;
             this.PosUnit_Lb5.Location = new System.Drawing.Point(197, 148);
             this.PosUnit_Lb5.Name = "PosUnit_Lb5";
-            this.PosUnit_Lb5.Size = new System.Drawing.Size(48, 20);
+            this.PosUnit_Lb5.Size = new System.Drawing.Size(55, 20);
             this.PosUnit_Lb5.TabIndex = 61;
-            this.PosUnit_Lb5.Text = "pulse";
+            this.PosUnit_Lb5.Text = "kPulse";
             // 
             // LnrIncrePos_Rdb
             // 
@@ -662,9 +686,9 @@
             this.PosUnit_Lb4.AutoSize = true;
             this.PosUnit_Lb4.Location = new System.Drawing.Point(197, 87);
             this.PosUnit_Lb4.Name = "PosUnit_Lb4";
-            this.PosUnit_Lb4.Size = new System.Drawing.Size(48, 20);
+            this.PosUnit_Lb4.Size = new System.Drawing.Size(55, 20);
             this.PosUnit_Lb4.TabIndex = 59;
-            this.PosUnit_Lb4.Text = "pulse";
+            this.PosUnit_Lb4.Text = "kPulse";
             // 
             // LnrStart_Btn
             // 
@@ -734,18 +758,18 @@
             this.AccUnit_Lb2.AutoSize = true;
             this.AccUnit_Lb2.Location = new System.Drawing.Point(223, 102);
             this.AccUnit_Lb2.Name = "AccUnit_Lb2";
-            this.AccUnit_Lb2.Size = new System.Drawing.Size(84, 20);
+            this.AccUnit_Lb2.Size = new System.Drawing.Size(83, 20);
             this.AccUnit_Lb2.TabIndex = 51;
-            this.AccUnit_Lb2.Text = "pulse/ms2";
+            this.AccUnit_Lb2.Text = "Pulse/ms2";
             // 
             // AccUnit_Lb1
             // 
             this.AccUnit_Lb1.AutoSize = true;
             this.AccUnit_Lb1.Location = new System.Drawing.Point(223, 69);
             this.AccUnit_Lb1.Name = "AccUnit_Lb1";
-            this.AccUnit_Lb1.Size = new System.Drawing.Size(84, 20);
+            this.AccUnit_Lb1.Size = new System.Drawing.Size(83, 20);
             this.AccUnit_Lb1.TabIndex = 50;
-            this.AccUnit_Lb1.Text = "pulse/ms2";
+            this.AccUnit_Lb1.Text = "Pulse/ms2";
             // 
             // LnrSmCoef_Tb
             // 
@@ -784,9 +808,9 @@
             this.VelUnit_Lb2.AutoSize = true;
             this.VelUnit_Lb2.Location = new System.Drawing.Point(223, 36);
             this.VelUnit_Lb2.Name = "VelUnit_Lb2";
-            this.VelUnit_Lb2.Size = new System.Drawing.Size(75, 20);
+            this.VelUnit_Lb2.Size = new System.Drawing.Size(74, 20);
             this.VelUnit_Lb2.TabIndex = 45;
-            this.VelUnit_Lb2.Text = "pulse/ms";
+            this.VelUnit_Lb2.Text = "Pulse/ms";
             // 
             // label24
             // 
@@ -862,9 +886,11 @@
             // 
             // CircMotion_Gbx
             // 
+            this.CircMotion_Gbx.Controls.Add(this.groupBox2);
+            this.CircMotion_Gbx.Controls.Add(this.groupBox1);
             this.CircMotion_Gbx.Location = new System.Drawing.Point(613, 11);
             this.CircMotion_Gbx.Name = "CircMotion_Gbx";
-            this.CircMotion_Gbx.Size = new System.Drawing.Size(407, 407);
+            this.CircMotion_Gbx.Size = new System.Drawing.Size(344, 407);
             this.CircMotion_Gbx.TabIndex = 41;
             this.CircMotion_Gbx.TabStop = false;
             this.CircMotion_Gbx.Text = "圆弧插补";
@@ -929,13 +955,200 @@
             // 
             this.HandyMode_Tmr.Tick += new System.EventHandler(this.HandyMode_Tmr_Tick);
             // 
+            // label11
+            // 
+            this.label11.AutoSize = true;
+            this.label11.Location = new System.Drawing.Point(184, 151);
+            this.label11.Name = "label11";
+            this.label11.Size = new System.Drawing.Size(55, 20);
+            this.label11.TabIndex = 38;
+            this.label11.Text = "kPulse";
+            // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.button1);
+            this.groupBox1.Controls.Add(this.label16);
+            this.groupBox1.Controls.Add(this.label14);
+            this.groupBox1.Controls.Add(this.textBox2);
+            this.groupBox1.Controls.Add(this.textBox1);
+            this.groupBox1.Controls.Add(this.label13);
+            this.groupBox1.Controls.Add(this.label12);
+            this.groupBox1.Location = new System.Drawing.Point(10, 26);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(328, 97);
+            this.groupBox1.TabIndex = 0;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "起点";
+            // 
+            // label12
+            // 
+            this.label12.AutoSize = true;
+            this.label12.Location = new System.Drawing.Point(6, 23);
+            this.label12.Name = "label12";
+            this.label12.Size = new System.Drawing.Size(21, 20);
+            this.label12.TabIndex = 0;
+            this.label12.Text = "x:";
+            // 
+            // label13
+            // 
+            this.label13.AutoSize = true;
+            this.label13.Location = new System.Drawing.Point(6, 56);
+            this.label13.Name = "label13";
+            this.label13.Size = new System.Drawing.Size(21, 20);
+            this.label13.TabIndex = 1;
+            this.label13.Text = "y:";
+            // 
+            // textBox1
+            // 
+            this.textBox1.Location = new System.Drawing.Point(45, 20);
+            this.textBox1.Name = "textBox1";
+            this.textBox1.Size = new System.Drawing.Size(100, 27);
+            this.textBox1.TabIndex = 2;
+            // 
+            // textBox2
+            // 
+            this.textBox2.Location = new System.Drawing.Point(45, 53);
+            this.textBox2.Name = "textBox2";
+            this.textBox2.Size = new System.Drawing.Size(100, 27);
+            this.textBox2.TabIndex = 3;
+            // 
+            // label14
+            // 
+            this.label14.AutoSize = true;
+            this.label14.Location = new System.Drawing.Point(151, 23);
+            this.label14.Name = "label14";
+            this.label14.Size = new System.Drawing.Size(55, 20);
+            this.label14.TabIndex = 4;
+            this.label14.Text = "kPulse";
+            // 
+            // label16
+            // 
+            this.label16.AutoSize = true;
+            this.label16.Location = new System.Drawing.Point(151, 56);
+            this.label16.Name = "label16";
+            this.label16.Size = new System.Drawing.Size(55, 20);
+            this.label16.TabIndex = 5;
+            this.label16.Text = "kPulse";
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(212, 51);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(106, 30);
+            this.button1.TabIndex = 6;
+            this.button1.Text = "前往起点";
+            this.button1.UseVisualStyleBackColor = true;
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.button2);
+            this.groupBox2.Controls.Add(this.label28);
+            this.groupBox2.Controls.Add(this.textBox5);
+            this.groupBox2.Controls.Add(this.label29);
+            this.groupBox2.Controls.Add(this.label17);
+            this.groupBox2.Controls.Add(this.label25);
+            this.groupBox2.Controls.Add(this.textBox3);
+            this.groupBox2.Controls.Add(this.textBox4);
+            this.groupBox2.Controls.Add(this.label26);
+            this.groupBox2.Controls.Add(this.label27);
+            this.groupBox2.Location = new System.Drawing.Point(10, 129);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(328, 123);
+            this.groupBox2.TabIndex = 7;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "圆弧";
+            // 
+            // label17
+            // 
+            this.label17.AutoSize = true;
+            this.label17.Location = new System.Drawing.Point(151, 56);
+            this.label17.Name = "label17";
+            this.label17.Size = new System.Drawing.Size(55, 20);
+            this.label17.TabIndex = 5;
+            this.label17.Text = "kPulse";
+            // 
+            // label25
+            // 
+            this.label25.AutoSize = true;
+            this.label25.Location = new System.Drawing.Point(151, 23);
+            this.label25.Name = "label25";
+            this.label25.Size = new System.Drawing.Size(55, 20);
+            this.label25.TabIndex = 4;
+            this.label25.Text = "kPulse";
+            // 
+            // textBox3
+            // 
+            this.textBox3.Location = new System.Drawing.Point(45, 53);
+            this.textBox3.Name = "textBox3";
+            this.textBox3.Size = new System.Drawing.Size(100, 27);
+            this.textBox3.TabIndex = 3;
+            // 
+            // textBox4
+            // 
+            this.textBox4.Location = new System.Drawing.Point(45, 20);
+            this.textBox4.Name = "textBox4";
+            this.textBox4.Size = new System.Drawing.Size(100, 27);
+            this.textBox4.TabIndex = 2;
+            // 
+            // label26
+            // 
+            this.label26.AutoSize = true;
+            this.label26.Location = new System.Drawing.Point(6, 56);
+            this.label26.Name = "label26";
+            this.label26.Size = new System.Drawing.Size(21, 20);
+            this.label26.TabIndex = 1;
+            this.label26.Text = "y:";
+            // 
+            // label27
+            // 
+            this.label27.AutoSize = true;
+            this.label27.Location = new System.Drawing.Point(6, 23);
+            this.label27.Name = "label27";
+            this.label27.Size = new System.Drawing.Size(21, 20);
+            this.label27.TabIndex = 0;
+            this.label27.Text = "x:";
+            // 
+            // label28
+            // 
+            this.label28.AutoSize = true;
+            this.label28.Location = new System.Drawing.Point(151, 89);
+            this.label28.Name = "label28";
+            this.label28.Size = new System.Drawing.Size(55, 20);
+            this.label28.TabIndex = 8;
+            this.label28.Text = "kPulse";
+            // 
+            // textBox5
+            // 
+            this.textBox5.Location = new System.Drawing.Point(45, 86);
+            this.textBox5.Name = "textBox5";
+            this.textBox5.Size = new System.Drawing.Size(100, 27);
+            this.textBox5.TabIndex = 7;
+            // 
+            // label29
+            // 
+            this.label29.AutoSize = true;
+            this.label29.Location = new System.Drawing.Point(6, 89);
+            this.label29.Name = "label29";
+            this.label29.Size = new System.Drawing.Size(19, 20);
+            this.label29.TabIndex = 6;
+            this.label29.Text = "r:";
+            // 
+            // button2
+            // 
+            this.button2.Location = new System.Drawing.Point(212, 86);
+            this.button2.Name = "button2";
+            this.button2.Size = new System.Drawing.Size(106, 30);
+            this.button2.TabIndex = 7;
+            this.button2.Text = "圆弧插补";
+            this.button2.UseVisualStyleBackColor = true;
+            // 
             // MotorCtrlForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.ClientSize = new System.Drawing.Size(1032, 619);
+            this.ClientSize = new System.Drawing.Size(969, 619);
             this.Controls.Add(this.About_Btn);
             this.Controls.Add(this.PosVel_Gbx);
             this.Controls.Add(this.Alarm_Gbx);
@@ -971,10 +1184,15 @@
             this.HandyMode_Gbx.ResumeLayout(false);
             this.AutoMode_Gbx.ResumeLayout(false);
             this.AutoMode_Gbx.PerformLayout();
+            this.CircMotion_Gbx.ResumeLayout(false);
             this.Select_Gbx.ResumeLayout(false);
             this.Select_Gbx.PerformLayout();
             this.Alarm_Gbx.ResumeLayout(false);
             this.Alarm_Gbx.PerformLayout();
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -1060,6 +1278,26 @@
         private System.Windows.Forms.Timer GetStatus_Tmr;
         private System.Windows.Forms.Button About_Btn;
         private System.Windows.Forms.Timer HandyMode_Tmr;
+        private System.Windows.Forms.Label label11;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Label label28;
+        private System.Windows.Forms.TextBox textBox5;
+        private System.Windows.Forms.Label label29;
+        private System.Windows.Forms.Label label17;
+        private System.Windows.Forms.Label label25;
+        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox textBox4;
+        private System.Windows.Forms.Label label26;
+        private System.Windows.Forms.Label label27;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label label16;
+        private System.Windows.Forms.Label label14;
+        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox textBox1;
+        private System.Windows.Forms.Label label13;
+        private System.Windows.Forms.Label label12;
+        private System.Windows.Forms.Button button2;
     }
 }
 
