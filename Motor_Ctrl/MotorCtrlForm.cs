@@ -18,7 +18,7 @@ namespace Motor_Ctrl
     {
         private string _cTime; // 日志记录的当前时间
 
-        public double[] SensCorPar = new double[3] {-1 / 0.623, -1 / 0.623, -1 / 0.623 }; // 传感器修正系数（编码器, 光栅, 磁栅）
+        public double[] SensCorPar = new double[3] {1 / 6.23, -1 / 0.623, -1 / 0.623 }; // 传感器修正系数（编码器, 光栅, 磁栅）
         public double[] SensBiasPar = new double[3] {0, 0, 0}; // 传感器修正偏置量（编码器, 光栅, 磁栅）
 
         public double PosLimitMax = 78; // 左软限位
@@ -83,13 +83,32 @@ namespace Motor_Ctrl
         public bool IncreModeActivated = true; // 与此相对的是 AbsModeActivated(IncreModeActivated = false)
 
         public gts.mc.TJogPrm TJog = new gts.mc.TJogPrm();
-        // TJog参数 acc 加速度 dec 减速度 smooth平滑系数 [0,1）越大越平稳
+        // TJog 参数 acc 加速度 dec 减速度 smooth平滑系数 [0,1）越大越平稳
         public gts.mc.TTrapPrm TTrap = new gts.mc.TTrapPrm();
-        // TTrap参数 acc 加速度 dec 减速度 smoothTime平滑时间 = (short)(TJog.smooth * 50) 根据TJog 的平滑系数来换算
+        // TTrap 参数 acc 加速度 dec 减速度 smoothTime平滑时间 = (short)(TJog.smooth * 50) 根据TJog 的平滑系数来换算
+        public gts.mc.TCrdPrm TCrd = new gts.mc.TCrdPrm();
+        // TCrd 参数
 
         public bool MouseMovement = false;
 
         public double VelGet = 0; // TODO 临时性加的。
+
+        public struct InterLine // 插补线结构体
+        {
+            public short crd; // 插补段的坐标系
+            public int x; // 插补段的终点坐标x
+            public int y; // 插补段的终点坐标y
+            public double SynVel; // 插补段的目标速度
+            public double SynAcc; // 插补段的加速度
+            public double EndVel; // 终点速度, 一般是0（不用前瞻预处理）
+            public short fifo; // 插补缓存区号[0,1]
+        }
+
+        public InterLine line1 = new InterLine();
+
+        public short CrdRun = 0;
+        public int CrdSegment = 0;
+
         /*************************************************************************************************************/
 
         public void UI_Init()
@@ -161,24 +180,70 @@ namespace Motor_Ctrl
 
         public void Init() // 对一些变量赋初值
         {
-            
+            // TJog 参数初始化
             {
                 HandyVel = 5; // 不在结构体之内
                 TJog.acc = 1.0;
                 TJog.dec = 1.0;
                 TJog.smooth = 0.3; // 平滑系数 [0,1）越大越平稳
             }
+            // TTrap 参数初始化
             {
                 TTrap.acc = 1.0;
                 TTrap.dec = 1.0;
                 TTrap.velStart = 0; // 起跳速度
-                TTrap.smoothTime = (short)(TJog.smooth * 50); // 平滑时间
+                TTrap.smoothTime = (short) (TJog.smooth * 50); // 平滑时间
             }
+            // TCrd 参数初始化
+            {
+                TCrd.dimension = 2; // 坐标系为二维坐标系
+                TCrd.synVelMax = 20; // 最大合成速度： 20 pulse/ms
+                TCrd.synAccMax = 10; // 最大加速度： 10 pulse/ms^2
+                TCrd.evenTime = 50; // 最小匀速时间： 50ms
+
+                TCrd.profile1 = 1; // 规划器1对应到X轴
+                TCrd.profile2 = 2; // 规划器2对应到Y轴
+                TCrd.setOriginFlag = 1; // 表示需要指定坐标系的原点坐标的规划位置
+                TCrd.originPos1 = 30000; // 坐标系的原点坐标的规划位置为（30000, 30000）
+                TCrd.originPos2 = 30000; // 坐标系的原点坐标的规划位置为（30000,30000）
+            }
+            // line1 参数初始化
+            {
+                line1.crd = 1; // 插补段的坐标系
+                line1.x = 0; // 插补段的终点坐标x
+                line1.y = 0; // 插补段的终点坐标y
+                line1.SynVel = 3; // 插补段的目标速度
+                line1.SynAcc = 1; // 插补段的加速度
+                line1.EndVel = 0; // 终点速度, 一般是0（不用前瞻预处理）
+                line1.fifo = 0; // 插补缓存区号[0,1]
+
+            }
+        }
+
+        public void InitTemp()
+        {
+            MaxLmtEnOff(2);
+            MinLmtEnOff(2);
+            DriverAlarmEnOff(2);
+            MotorSetOn(2);
         }
 
         public void Reset() // 重置变量和逻辑
         {
 
+        }
+
+        public void PreInitAfterCtrlOn()
+        {
+            StopAxis(AxisNo, AxisStopSmooth); // 停止轴运动
+            MotorSetOff(AxisNo); // 关闭电机使能
+            CtrlReset(); // 控制器复位
+            DriverAlarmEnOn(AxisNo); // 驱动器报警使能开
+            MaxLmtEnOn(AxisNo); // 正限位报警开
+            MinLmtEnOn(AxisNo); // 负限位报警开
+            JogModeAct(); // 预先加载Jog模式
+            GetStatus_Tmr.Enabled = true; // 计时器-> 获取系统状态 使能开
+            HandyMode_Tmr.Enabled = true;
         }
 
         public double pulse2mm(double pulse)
@@ -571,7 +636,6 @@ namespace Motor_Ctrl
             if (sRtn == 0)
             {
                 HomePos = (CurrEncoder == 0) ? 0 : GetPosFromSensor(AxisNo);
-                ZeroPos_Lb.Text = HomePos.ToString("0.0");
                 ActRecord("SetZeroPos Ok");
             }
             else
@@ -603,7 +667,7 @@ namespace Motor_Ctrl
             sRtn = gts.mc.GT_PrfJog(AxisNo);
             if (sRtn == 0)
             {
-                ModeActivated = 0;
+                //ModeActivated = 0;
             }
             return sRtn;
 
@@ -654,6 +718,7 @@ namespace Motor_Ctrl
                 SetVel(AxisNo, HandyVel);
                 SetParmOfJog(AxisNo, TJog);
             }
+            ActRecord("Jog Mode Activited");
             return 0;
         }
 
@@ -672,7 +737,7 @@ namespace Motor_Ctrl
             sRtn = gts.mc.GT_PrfTrap(AxisNo);
             if (sRtn == 0)
             {
-                ModeActivated = 1;
+                //ModeActivated = 1;
             }
             return sRtn;
         }
@@ -692,6 +757,7 @@ namespace Motor_Ctrl
                 SetVel(AxisNo, HandyVel);
                 SetParmOfTrap(AxisNo, TTrap);
             }
+            ActRecord("Trap Mode Activited");
             return 0;
         }
 
@@ -733,11 +799,95 @@ namespace Motor_Ctrl
         }
 
         /*******Crd Mode***************************************************/
+        public short CrdFifoClear()
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_CrdClear(1, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("CrdFifoClear Ok");
+            }
+            else
+            {
+                ActRecord("CrdFifoClear Error |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
+        public short SetCrdPrm()
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_SetCrdPrm(1, ref TCrd);
+            if (sRtn == 0)
+            {
+                ActRecord("SetCrdPrm Ok");
+            }
+            else
+            {
+                ActRecord("SetCrdPrm |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
+        public short LnXY(InterLine line)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_LnXY(line.crd, line.x, line.y, line.SynVel, line.SynAcc, line.EndVel, line.fifo);
+            if (sRtn == 0)
+            {
+                ActRecord("LnXY Ok");
+            }
+            else
+            {
+                ActRecord("LnXY |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
+        public short GetCrdSpace(out int space)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_CrdSpace(1, out space, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("GetCrdSpace Ok");
+            }
+            else
+            {
+                ActRecord("GetCrdSpace |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
+        public short GetCrdStatus(out short run,out int segment)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_CrdStatus(1, out run, out segment, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("GetCrdStatus Ok");
+            }
+            else
+            {
+                ActRecord("GetCrdStatus |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
+        public short CrdStart()
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_CrdStart(1, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("CrdStart Ok");
+            }
+            else
+            {
+                ActRecord("CrdStart |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
 
         /******************************************************************/
 
@@ -778,28 +928,10 @@ namespace Motor_Ctrl
             return sRtn;
         }
 
-        public void PreInitAfterCtrlOn()
-        {
-            StopAxis(AxisNo, AxisStopSmooth); // 停止轴运动
-            MotorSetOff(AxisNo); // 关闭电机使能
-            CtrlReset(); // 控制器复位
-            DriverAlarmEnOn(AxisNo); // 驱动器报警使能开
-            MaxLmtEnOn(AxisNo); // 正限位报警开
-            MinLmtEnOn(AxisNo); // 负限位报警开
-            JogModeAct(); // 预先加载Jog模式
-            GetStatus_Tmr.Enabled = true; // 计时器-> 获取系统状态 使能开
-            HandyMode_Tmr.Enabled = true;
-        }
-
         public void HandyGoForward(double HG_Vel)
         {
-            
-            if (!MotorEnIsOn)
-            {
-                DialogResult res = MessageBox.Show("检测到电机未运行,是否启动电机", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (res == DialogResult.Yes) MotorSetOn(AxisNo);
-                return;
-            }
+
+            CheckMotorIsOnDlg();
 
             SetVel(AxisNo, HG_Vel); // 速度是正的
             //GetVel(AxisNo);
@@ -811,12 +943,7 @@ namespace Motor_Ctrl
         public void HandyGoBackward(double HG_Vel)
         {
 
-            if (!MotorEnIsOn)
-            {
-                DialogResult res = MessageBox.Show("检测到电机未运行,是否启动电机", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (res == DialogResult.Yes) MotorSetOn(AxisNo);
-                return;
-            }
+            CheckMotorIsOnDlg();
 
             SetVel(AxisNo, -(HG_Vel)); // 速度是负的
             //GetVel(AxisNo);
@@ -865,19 +992,9 @@ namespace Motor_Ctrl
             {
                 return;
             }
-            if (!MotorEnIsOn)
-            {
-                DialogResult Res1 = MessageBox.Show("检测到电机未运行,继续将启动电机", "Warning", MessageBoxButtons.YesNo, MessageBoxIcon.Question);
-                if (Res1 == DialogResult.Yes)
-                {
-                    MotorSetOn(AxisNo);
-                    return;
-                }
-                else
-                {
-                    return;
-                }
-            }
+
+            CheckMotorIsOnDlg();
+
             StopAxis(AxisNo, AxisStopSmooth);
             bool isNowHome = false; // 判断是否初始值是零点
             isNowHome = CheckHomePos();
@@ -998,7 +1115,9 @@ namespace Motor_Ctrl
         {
             return checkPos;
         }
+
         /***********************************************************日志记录*****************************************/
+
         private delegate void AlDlgate(string msg); // ActLog 的委托，防止跨线程更新UI
         private delegate void LclDlgate(); // LogClear 的委托，防止跨线程更新UI
 
@@ -1236,7 +1355,7 @@ namespace Motor_Ctrl
             
             JogModeAct();
             GoFindHome();
-            Thread.Sleep(500);
+            //Thread.Sleep(500);
             ActRecord("FindZero Ok!");
             Set2ZeroPoint(AxisNo);
             ZeroPos_Lb.Text = (HomePos / 1000).ToString("0.0");
@@ -1414,6 +1533,11 @@ namespace Motor_Ctrl
 
         private void About_Btn_Click(object sender, EventArgs e) // 关于按钮
         {
+            SetCrdPrm();
+            CrdFifoClear();
+            LnXY(line1);
+            CrdStart();
+            Crd_Tmr.Enabled = true;
 
         }
 
@@ -1448,6 +1572,11 @@ namespace Motor_Ctrl
             }
         }
 
+        private void Crd_Tmr_Tick(object sender, EventArgs e)
+        {
+            GetCrdStatus(out CrdRun, out CrdSegment);
+            ActRecord("Run " + CrdRun.ToString() + ", " + "Segment " + CrdSegment.ToString());
+        }
 
         private void MotorCtrlForm_Load(object sender, EventArgs e) // 加载窗口时
         {
@@ -1468,5 +1597,7 @@ namespace Motor_Ctrl
         {
             InitializeComponent();
         }
+
+
     }
 }
