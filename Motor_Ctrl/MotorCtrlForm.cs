@@ -50,7 +50,7 @@ namespace Motor_Ctrl
         public bool MinAlarmTriggered = false; // 负限位开关触发
         public bool MaxAlarmTriggered = false; // 正限位开关触发
 
-        public bool SettingChanged = false; // 手动模式上面的几个文本框改变
+        public bool LnrSettingChanged = false; // 手动模式上面的几个文本框改变
 
         public bool CtrlIsOn = false; // 控制器开关
         public int Unit = 1; // 单位 0->mm 1->pulse
@@ -63,7 +63,7 @@ namespace Motor_Ctrl
         public double AutoAimIncre = 0; // 自动模式，增量位置
         public double AutoAimAbs = 0; // 自动模式，绝对位置
 
-        public int ModeActivated = 0; // 0 -> JogMode, 1 -> TrapMode
+        public int ModeActivated = 0; // 0 -> JogMode, 1 -> TrapMode 2-> PtMode
 
         public bool MotorIsMoving = false; // 电机在运动
 
@@ -93,7 +93,7 @@ namespace Motor_Ctrl
 
         public double VelGet = 0; // TODO 临时性加的。
 
-        public struct InterLine // 插补线结构体
+        public struct InterLine // 插补直线结构体
         {
             public short crd; // 插补段的坐标系
             public int x; // 插补段的终点坐标x
@@ -104,11 +104,35 @@ namespace Motor_Ctrl
             public short fifo; // 插补缓存区号[0,1]
         }
 
-        public InterLine line1 = new InterLine();
+        public struct PtMode1Setting // Pt Mode1 结构体
+        {
+            public double Xc;
+            public double Yc;
+            public double Angle;
+            public double Vel;
+        }
 
-        public short CrdRun = 0;
-        public int CrdSegment = 0;
+        public struct PtMode2Setting // Pt Mode2 结构体
+        {
 
+        }
+
+        public InterLine Line1 = new InterLine();
+        public PtMode1Setting PtMode1= new PtMode1Setting();
+        public PtMode2Setting PtMode2 = new PtMode2Setting();
+
+        public short CrdRun = 0; // 插补运行状态
+        public int CrdSegment = 0; // 插补 FIFO 剩余运行命令
+
+        public double InterX2 = 0; // 插值点，临时数据
+        public double InterY2 = 0; // 插值点，临时数据
+
+        public double PtPosX = 0; // Pt 模式下对 XY 轴位置的记录
+        public double PtPosY = 0;
+
+        public int PtMode = 0; // 插补方式 0 -> Mode1 2-> Mode2
+
+        public bool CirSettingChanged = false; // 圆弧插值设置改变
         /*************************************************************************************************************/
 
         public void UI_Init()
@@ -131,13 +155,21 @@ namespace Motor_Ctrl
             LnrDec_Tb.Text = TJog.dec.ToString();
             LnrSmCoef_Tb.Text = TJog.smooth.ToString();
             LnrVel_Tb.Text = HandyVel.ToString();
-            LnrParmSet_Btm.BackColor = Color.LightGreen;
+            LnrParmSet_Btn.BackColor = Color.LightGreen;
 
             LnrIncrePos_Tb.Text = AutoAimIncre.ToString();
             LnrAbsPos_Tb.Text = AutoAimAbs.ToString();
 
             LnrAbsPos_Tb.Enabled = false;
             AutoMode_Gbx.Enabled = false;
+
+            CMode1CX_Tb.Text = PtMode1.Xc.ToString();
+            CMode1CY_Tb.Text = PtMode1.Yc.ToString();
+            CMode1Angle_Tb.Text = PtMode1.Angle.ToString();
+            CMode1Vel_Tb.Text = PtMode1.Vel.ToString();
+
+            InterMode2_Gbx.Enabled = false;
+
             LinearMotion_Gbx.Enabled = false;
             CircMotion_Gbx.Enabled = false;
 
@@ -209,14 +241,24 @@ namespace Motor_Ctrl
             }
             // line1 参数初始化
             {
-                line1.crd = 1; // 插补段的坐标系
-                line1.x = 0; // 插补段的终点坐标x
-                line1.y = 0; // 插补段的终点坐标y
-                line1.SynVel = 3; // 插补段的目标速度
-                line1.SynAcc = 1; // 插补段的加速度
-                line1.EndVel = 0; // 终点速度, 一般是0（不用前瞻预处理）
-                line1.fifo = 0; // 插补缓存区号[0,1]
-
+                Line1.crd = 1; // 插补段的坐标系
+                Line1.x = 0; // 插补段的终点坐标x
+                Line1.y = 0; // 插补段的终点坐标y
+                Line1.SynVel = 3; // 插补段的目标速度
+                Line1.SynAcc = 1; // 插补段的加速度
+                Line1.EndVel = 0; // 终点速度, 一般是0（不用前瞻预处理）
+                Line1.fifo = 0; // 插补缓存区号[0,1]
+            }
+            // PtMode1 设置项初始化
+            {
+                PtMode1.Xc = 5000;
+                PtMode1.Yc = 0;
+                PtMode1.Angle = Math.PI * 2;
+                PtMode1.Vel = 5;
+            }
+            // PtMode2 设置项初始化
+            {
+                // TODO 初始化未完成
             }
         }
 
@@ -636,6 +678,8 @@ namespace Motor_Ctrl
             if (sRtn == 0)
             {
                 HomePos = (CurrEncoder == 0) ? 0 : GetPosFromSensor(AxisNo);
+                PtPosX = 0;
+                PtPosY = 0;
                 ActRecord("SetZeroPos Ok");
             }
             else
@@ -770,7 +814,7 @@ namespace Motor_Ctrl
             }
             else
             {
-                ActRecord("SetPos Error |code " + sRtn.ToString());
+                ActRecord("GetPos Error |code " + sRtn.ToString());
             }
             return sRtn;
         }
@@ -850,7 +894,7 @@ namespace Motor_Ctrl
             sRtn = gts.mc.GT_CrdSpace(1, out space, 0);
             if (sRtn == 0)
             {
-                ActRecord("GetCrdSpace Ok");
+                ActRecord("GetCrdSpace " + space.ToString());
             }
             else
             {
@@ -885,6 +929,174 @@ namespace Motor_Ctrl
             else
             {
                 ActRecord("CrdStart |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public void CrdTest()
+        {
+            SetCrdPrm();
+            CrdFifoClear();
+            LnXY(Line1);
+            CrdStart();
+            Crd_Tmr.Enabled = true;
+        }
+
+        /********Pt Mode**********************************************************/
+        public short SetPrf2Pt(short AxisNo)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_PrfPt(AxisNo, gts.mc.PT_MODE_STATIC);
+            if (sRtn == 0)
+            {
+            }
+            else
+            {
+                ActRecord("SetPrf2Pt |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short SetFifo1024()
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_SetPtMemory(AxisNo, 1);
+            if (sRtn == 0)
+            {
+            }
+            else
+            {
+                ActRecord("SetFifo to 1024 |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public int PtModeAct()
+        {
+            StopAxis(AxisNo, AxisStopHard);
+            if (SetPrf2Pt(AxisNo) == 0)
+            {
+                SetFifo1024();
+                PtFifoClear(AxisNo);
+            }
+            ActRecord("Pt Mode Activited");
+            return 0;
+        }
+
+        public short PtFifoClear(short AxisNo)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_PtClear(AxisNo, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("PtFifoClear Ok");
+            }
+            else
+            {
+                ActRecord("PtFifoClear |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short PtAddData(short AxisNo, double Pos, int Time, short Segment = gts.mc.PT_SEGMENT_NORMAL)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_PtData(AxisNo, Pos, Time, Segment, 0);
+            if (sRtn == 0)
+            {
+                ActRecord(Pos.ToString()+", "+ Time.ToString());
+            }
+            else
+            {
+                ActRecord("PtAddData |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public void PtCrdCircle(double xc, double yc, double angle, double vel)
+        {
+            short PtSpace;
+            int nMax = 1024;
+            int[] dt_group = new int[7] {1, 2, 4, 8, 16, 32, 64}; // t 间隔大小
+            int dtChoose = 0;
+            int n = 0;
+            double r = Math.Sqrt(Math.Pow((xc - PtPosX), 2) + Math.Pow((yc - PtPosY), 2));
+            double distance = Math.Abs(r * angle);
+            int t = (int)(distance / vel);
+
+            while(true) // 判断使用那组 dt 可以使 n < nMax
+            {
+                double nTemp;
+                nTemp = (double) t / (double) dt_group[dtChoose];
+                if (nTemp < nMax)
+                {
+                    n = (int)Math.Floor(nTemp);
+                    break;
+                }
+
+                dtChoose++;
+            }
+
+            //double dt = distance / vel / n;
+
+            for (int i = 0; i < n; i++)
+            {
+                double dangle = angle / n;
+                InterCircle(PtPosX, PtPosY, xc, yc, dangle*(i+1), out InterX2, out InterY2);
+                double pos = InterX2;
+                int remainder = t % dt_group[dtChoose];
+
+                int time = remainder + dt_group[dtChoose] * (i + 1);
+                PtAddData(AxisNo, pos, time);
+            }
+
+            PtAddData(AxisNo, InterX2, t, gts.mc.PT_SEGMENT_STOP);
+            GetPtSpace(AxisNo, out PtSpace);
+        }
+
+        public short PtStart(short AxisNo)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_PtStart(1 << (AxisNo-1), 0);
+            if (sRtn == 0)
+            {
+                PtPosX = InterX2; // start之后要更新当前的Pt位置
+                PtPosY = InterY2;
+                ActRecord("PtStart Ok");
+            }
+            else
+            {
+                ActRecord("PtStart Error |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short GetPtSpace(short AxisNo, out short pSpace)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_PtSpace(AxisNo, out pSpace, 0);
+            if (sRtn == 0)
+            {
+                ActRecord("GetPtSpace " + pSpace.ToString());
+            }
+            else
+            {
+                ActRecord("GetPtSpace Error |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short SetPtLoop(short AxisNo, int loop)
+        {
+            short sRtn = 0;
+            sRtn = gts.mc.GT_SetPtLoop(AxisNo, loop);
+            if (sRtn == 0)
+            {
+                ActRecord("SetPtLoop to " + loop.ToString() + " Ok");
+            }
+            else
+            {
+                ActRecord("SetPtLoop Error |code " + sRtn.ToString());
             }
             return sRtn;
         }
@@ -993,7 +1205,7 @@ namespace Motor_Ctrl
                 return;
             }
 
-            CheckMotorIsOnDlg();
+            CheckMotorIsOnDlg(); // 判断电机是否打开
 
             StopAxis(AxisNo, AxisStopSmooth);
             bool isNowHome = false; // 判断是否初始值是零点
@@ -1134,8 +1346,27 @@ namespace Motor_Ctrl
             LclDlgate lcld = new LclDlgate(ActLogTb.Clear);
             this.Invoke(lcld);
         }
+        /**↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓插补函数↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓**/
 
-        /**↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓按钮事件↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓**/
+        public void InterCircle(double x1, double y1, double xc, double yc, double angle, out double x2, out double y2)
+        {
+            x2 = xc + (x1 - xc) * Math.Cos(angle) - (y1 - yc) * Math.Sin(angle);
+            y2 = yc + (y1 - yc) * Math.Cos(angle) + (x1 - xc) * Math.Sin(angle);
+        }
+
+        public void InterCircleTest()
+        {
+            InterCircle(-1, 0, 0, 0, Math.PI/2, out InterX2, out InterY2);
+            //InterX2 = 23 % 3;
+            ActRecord(InterX2.ToString() + "    " + InterY2.ToString());
+            //PtModeAct();
+            //PtCrdCircle(10000, 0, Math.PI, 5);
+            //PtStart(AxisNo);
+
+        }
+
+
+        /**↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓按钮事件↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓**/
 
         private void Ctrl_Btn_Click(object sender, EventArgs e) // 控制器状态按钮
         {
@@ -1347,7 +1578,10 @@ namespace Motor_Ctrl
             {
                 LinearMotion_Gbx.Enabled = false;
                 CircMotion_Gbx.Enabled = true;
+                PtModeAct();
+                ModeActivated = 2;
             }
+            
         }
 
         private void FindZero_Btn_Click(object sender, EventArgs e) // 寻零点按钮
@@ -1359,6 +1593,8 @@ namespace Motor_Ctrl
             ActRecord("FindZero Ok!");
             Set2ZeroPoint(AxisNo);
             ZeroPos_Lb.Text = (HomePos / 1000).ToString("0.0");
+            CPos_Lb.Text = (string.Format("({0}, {1})", PtPosX / 1000, PtPosY / 1000));
+
             if (ModeActivated == 0)
             {
                 JogModeAct();
@@ -1367,6 +1603,11 @@ namespace Motor_Ctrl
             if (ModeActivated == 1)
             {
                 TrapModeAct();
+            }
+
+            if (ModeActivated == 2)
+            {
+                PtModeAct();
             }
         }
 
@@ -1377,26 +1618,26 @@ namespace Motor_Ctrl
 
         private void LnrVel_Tb_TextChanged(object sender, EventArgs e) // 速度输入框值改变
         {
-            SettingChanged = true;
-            LnrParmSet_Btm.BackColor = Color.Tomato;
+            LnrSettingChanged = true;
+            LnrParmSet_Btn.BackColor = Color.Tomato;
         }
 
         private void LnrAcc_Tb_TextChanged(object sender, EventArgs e) // 加速度输入框值改变
         {
-            SettingChanged = true;
-            LnrParmSet_Btm.BackColor = Color.Tomato;
+            LnrSettingChanged = true;
+            LnrParmSet_Btn.BackColor = Color.Tomato;
         }
 
         private void LnrDec_Tb_TextChanged(object sender, EventArgs e) // 减速度输入框值改变
         {
-            SettingChanged = true;
-            LnrParmSet_Btm.BackColor = Color.Tomato;
+            LnrSettingChanged = true;
+            LnrParmSet_Btn.BackColor = Color.Tomato;
         }
 
         private void LnrSmT_Tb_TextChanged(object sender, EventArgs e) // 平滑时间输入框值改变
         {
-            SettingChanged = true;
-            LnrParmSet_Btm.BackColor = Color.Tomato;
+            LnrSettingChanged = true;
+            LnrParmSet_Btn.BackColor = Color.Tomato;
         }
 
         private void LnrParmSet_Btm_Click(object sender, EventArgs e) // 设置按钮
@@ -1432,8 +1673,8 @@ namespace Motor_Ctrl
                 SetParmOfTrap(AxisNo, TTrap);
             }
 
-            SettingChanged = false;
-            LnrParmSet_Btm.BackColor = Color.LightGreen;
+            LnrSettingChanged = false;
+            LnrParmSet_Btn.BackColor = Color.LightGreen;
         }
 
 
@@ -1514,7 +1755,7 @@ namespace Motor_Ctrl
             AutoAimAbs = double.Parse(LnrAbsPos_Tb.Text) * 1000;
         }
 
-        private void LnrStart_Btn_Click(object sender, EventArgs e) // 启动按钮
+        private void LnrStart_Btn_Click(object sender, EventArgs e) // 直线运动启动按钮
         {
             int pulse = 0;
             CheckMotorIsOnDlg();
@@ -1531,13 +1772,87 @@ namespace Motor_Ctrl
             CommandUpdate(AxisNo);
         }
 
+
+        private void CMode1CX_Tb_TextChanged(object sender, EventArgs e) // Mode1 圆心x 文本改变
+        {
+            CirSettingChanged = true;
+            CSetting_Btn.BackColor = Color.Tomato;
+        }
+
+        private void CMode1CY_Tb_TextChanged(object sender, EventArgs e) // Mode1 圆心y 文本改变
+        {
+            CirSettingChanged = true;
+            CSetting_Btn.BackColor = Color.Tomato;
+        }
+
+        private void CMode1Angle_Tb_TextChanged(object sender, EventArgs e) // Mode1 角度 文本改变
+        {
+            CirSettingChanged = true;
+            CSetting_Btn.BackColor = Color.Tomato;
+        }
+
+        private void CMode1Vel_Tb_TextChanged(object sender, EventArgs e) // Mode1 线速度 文本改变
+        {
+            CirSettingChanged = true;
+            CSetting_Btn.BackColor = Color.Tomato;
+        }
+
+        private void CSetting_Btn_Click(object sender, EventArgs e) // 插补设置按钮
+        {
+            if (PtMode == 0)
+            {
+                double CirCX = double.Parse(CMode1CX_Tb.Text);
+                double CirCY = double.Parse(CMode1CY_Tb.Text);
+                double CirAngle = double.Parse(CMode1Angle_Tb.Text);
+                double CirVel = double.Parse(CMode1Vel_Tb.Text);
+
+                PtMode1.Xc = CirCX;
+                PtMode1.Yc = CirCY;
+                PtMode1.Angle = CirAngle;
+                PtMode1.Vel = CirVel;
+
+                PtFifoClear(AxisNo);
+                PtCrdCircle(PtMode1.Xc, PtMode1.Yc, PtMode1.Angle, PtMode1.Vel);
+                CSetting_Btn.BackColor = Color.LightGreen;
+            }
+
+            if (PtMode == 1)
+            {
+                CSetting_Btn.BackColor = Color.LightGreen;
+                // TODO Mode2 未完成
+            }
+            
+
+            
+        }
+
+        private void InterStart_Btn_Click(object sender, EventArgs e) // 插补启动按钮
+        {
+            PtStart(AxisNo);
+            while (MotorIsMoving) ;
+            ActRecord("Pt Complete");
+            Thread.Sleep(300);
+            PtFifoClear(AxisNo);
+        }
+
+        private void InterMode1_Rdb_CheckedChanged(object sender, EventArgs e) // 模式1选择
+        {
+            PtMode = 0;
+            InterMode1_Gbx.Enabled = true;
+            InterMode2_Gbx.Enabled = false;
+        }
+
+        private void InterMode2_Rdb_CheckedChanged(object sender, EventArgs e) // 模式2选择
+        {
+            PtMode = 1;
+            InterMode1_Gbx.Enabled = false;
+            InterMode2_Gbx.Enabled = true;
+        }
+
+
         private void About_Btn_Click(object sender, EventArgs e) // 关于按钮
         {
-            SetCrdPrm();
-            CrdFifoClear();
-            LnXY(line1);
-            CrdStart();
-            Crd_Tmr.Enabled = true;
+            InterCircleTest();
 
         }
 
@@ -1552,6 +1867,8 @@ namespace Motor_Ctrl
  
             CurrVel = Math.Abs(AbsPos - AbsPos0) / GetStatus_Tmr.Interval;
             CurrVel_Lb.Text = (CurrVel).ToString("0.000");
+
+            CPos_Lb.Text = string.Format(string.Format("({0:0.00}, {1:0.00})", PtPosX / 1000, PtPosY / 1000));
         }
 
         private void HandyMode_Tmr_Tick(object sender, EventArgs e) // 手动模式的定时器，轮询按键状态
@@ -1598,6 +1915,6 @@ namespace Motor_Ctrl
             InitializeComponent();
         }
 
-
+        
     }
 }
