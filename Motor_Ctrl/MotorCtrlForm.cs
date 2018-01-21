@@ -18,20 +18,20 @@ namespace Motor_Ctrl
     {
         private string _cTime; // 日志记录的当前时间
 
-        public double[] SensCorPar = new double[3] {1 / 6.23, -1 / 0.623, -1 / 0.623 }; // 传感器修正系数（编码器, 光栅, 磁栅）
+        public double[] SensCorPar = new double[3] {1 * 1, -1 * 10, 1 * 10 }; // 传感器修正系数（编码器, 光栅, 磁栅）
         public double[] SensBiasPar = new double[3] {0, 0, 0}; // 传感器修正偏置量（编码器, 光栅, 磁栅）
 
-        public double PosLimitMax = 78; // 左软限位
-        public double PosLimitMin = -8; // 右软限位
+        public double PosLimitMax = 49; // 左软限位
+        public double PosLimitMin = -5; // 右软限位
 
-        public double VelLimitMin = 0.2; // 速度限制最小值
-        public double VelLimitMax = 20; // 速度限制最大值
+        public double VelLimitMin = 10; // 速度限制最小值
+        public double VelLimitMax = 200; // 速度限制最大值
 
-        public double HandyVel = 5; // 手动速度
+        public double HandyVel = 50; // 手动速度
 
         public double pul2mmCoef = 0.0005;// TransPar=tr/pr mm/pulse
 
-        public bool StepModeIsDir = false; // 方向+脉冲模式
+        public bool StepModeIsDir = false; // false 方向+脉冲模式 true 是双脉冲模式
         
         public bool HomePosStatus;
         public double GrenzPosOfHome;
@@ -55,7 +55,7 @@ namespace Motor_Ctrl
         public bool CtrlIsOn = false; // 控制器开关
         public int Unit = 1; // 单位 0->mm 1->pulse
         public int PulsePos = 0; // 由 GetPos 得到的 pulse 位置
-        public double PrfPos = 0; // TODO 规划位置 暂时不知道有什么用，定时器任务 获取规划位置
+        public double PrfPos = 0; // TODO 规划位置 暂时用不到
 
         public bool HandyFowardMouseDown = false; // 手动正向按钮按下
         public bool HandyBackMouseDown = false; // 手动负向按钮按下
@@ -163,10 +163,11 @@ namespace Motor_Ctrl
             LnrAbsPos_Tb.Enabled = false;
             AutoMode_Gbx.Enabled = false;
 
-            CMode1CX_Tb.Text = PtMode1.Xc.ToString();
-            CMode1CY_Tb.Text = PtMode1.Yc.ToString();
-            CMode1Angle_Tb.Text = PtMode1.Angle.ToString();
+            CMode1CX_Tb.Text = (PtMode1.Xc / 1000).ToString();
+            CMode1CY_Tb.Text = (PtMode1.Yc / 1000).ToString();
+            CMode1Angle_Tb.Text = (PtMode1.Angle / Math.PI * 180).ToString();
             CMode1Vel_Tb.Text = PtMode1.Vel.ToString();
+            CSetting_Btn.BackColor = Color.LightGreen;
 
             InterMode2_Gbx.Enabled = false;
 
@@ -214,15 +215,15 @@ namespace Motor_Ctrl
         {
             // TJog 参数初始化
             {
-                HandyVel = 5; // 不在结构体之内
-                TJog.acc = 1.0;
-                TJog.dec = 1.0;
+                HandyVel = 50; // 不在结构体之内
+                TJog.acc = 10.0;
+                TJog.dec = 10.0;
                 TJog.smooth = 0.3; // 平滑系数 [0,1）越大越平稳
             }
             // TTrap 参数初始化
             {
-                TTrap.acc = 1.0;
-                TTrap.dec = 1.0;
+                TTrap.acc = 10.0;
+                TTrap.dec = 10.0;
                 TTrap.velStart = 0; // 起跳速度
                 TTrap.smoothTime = (short) (TJog.smooth * 50); // 平滑时间
             }
@@ -251,10 +252,10 @@ namespace Motor_Ctrl
             }
             // PtMode1 设置项初始化
             {
-                PtMode1.Xc = 5000;
+                PtMode1.Xc = 80000;
                 PtMode1.Yc = 0;
-                PtMode1.Angle = Math.PI * 2;
-                PtMode1.Vel = 5;
+                PtMode1.Angle = Math.PI;
+                PtMode1.Vel = 75;
             }
             // PtMode2 设置项初始化
             {
@@ -280,6 +281,16 @@ namespace Motor_Ctrl
             StopAxis(AxisNo, AxisStopSmooth); // 停止轴运动
             MotorSetOff(AxisNo); // 关闭电机使能
             CtrlReset(); // 控制器复位
+            
+            if (StepModeIsDir)
+            {
+                StepDir(); // 配置输出模式方向+脉冲模式
+            }
+            else
+            {
+                StepPulse(); // 配置输出模式双脉冲模式
+            }
+
             DriverAlarmEnOn(AxisNo); // 驱动器报警使能开
             MaxLmtEnOn(AxisNo); // 正限位报警开
             MinLmtEnOn(AxisNo); // 负限位报警开
@@ -387,6 +398,36 @@ namespace Motor_Ctrl
             else
             {
                 ActRecord("CtrlReset Error |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short StepDir()
+        {
+            short sRtn = 10;
+            sRtn = gts.mc.GT_StepDir(AxisNo);
+            if (sRtn == 0)
+            {
+                ActRecord("StepDir Ok");
+            }
+            else
+            {
+                ActRecord("StepDir Error |code " + sRtn.ToString());
+            }
+            return sRtn;
+        }
+
+        public short StepPulse()
+        {
+            short sRtn = 10;
+            sRtn = gts.mc.GT_StepPulse(AxisNo);
+            if (sRtn == 0)
+            {
+                ActRecord("StepPulse Ok");
+            }
+            else
+            {
+                ActRecord("StepPulse Error |code " + sRtn.ToString());
             }
             return sRtn;
         }
@@ -1042,15 +1083,15 @@ namespace Motor_Ctrl
             for (int i = 0; i < n; i++)
             {
                 double dangle = angle / n;
-                InterCircle(PtPosX, PtPosY, xc, yc, dangle*(i+1), out InterX2, out InterY2);
-                double pos = InterX2;
+                InterCircle(PtPosX, PtPosY, xc, yc, dangle * (i + 1), out InterX2, out InterY2);
+                double pos = InterX2 - PtPosX;
                 int remainder = t % dt_group[dtChoose];
 
                 int time = remainder + dt_group[dtChoose] * (i + 1);
                 PtAddData(AxisNo, pos, time);
             }
 
-            PtAddData(AxisNo, InterX2, t, gts.mc.PT_SEGMENT_STOP);
+            //PtAddData(AxisNo, InterX2, t, gts.mc.PT_SEGMENT_STOP);
             GetPtSpace(AxisNo, out PtSpace);
         }
 
@@ -1229,7 +1270,6 @@ namespace Motor_Ctrl
                 HandyGoBackward(VelLimitMin);
                 while (!CheckHomePos()) Application.DoEvents();
                 StopAxis(AxisNo, AxisStopHard);
-                //MotorSetOff(AxisNo); // TODO 关电机？
             }
             else
             {
@@ -1255,7 +1295,6 @@ namespace Motor_Ctrl
                 HandyGoBackward(VelLimitMin);
                 while (!CheckHomePos()) Application.DoEvents();
                 StopAxis(AxisNo, AxisStopHard);
-                //MotorSetOff(AxisNo); // TODO 关电机？
             }
         }
 
@@ -1375,7 +1414,7 @@ namespace Motor_Ctrl
             if (CtrlIsOn) // 控制板已开启
             {
                 // 处理动作-> 关闭控制器
-                // TODO 关闭控制板前要判断是否电机在运动
+                // 关闭控制板前要判断是否电机在运动
                 if (MotorIsMoving) StopAxis(AxisNo, AxisStopSmooth);
                 if (MotorEnIsOn) MotorSetOff(AxisNo);
 
@@ -1589,7 +1628,7 @@ namespace Motor_Ctrl
             
             JogModeAct();
             GoFindHome();
-            //Thread.Sleep(500);
+            Thread.Sleep(500);
             ActRecord("FindZero Ok!");
             Set2ZeroPoint(AxisNo);
             ZeroPos_Lb.Text = (HomePos / 1000).ToString("0.0");
@@ -1806,12 +1845,13 @@ namespace Motor_Ctrl
                 double CirAngle = double.Parse(CMode1Angle_Tb.Text);
                 double CirVel = double.Parse(CMode1Vel_Tb.Text);
 
-                PtMode1.Xc = CirCX;
-                PtMode1.Yc = CirCY;
-                PtMode1.Angle = CirAngle;
+                PtMode1.Xc = (CirCX * 1000);
+                PtMode1.Yc = (CirCY * 1000);
+                PtMode1.Angle = CirAngle / 180 * Math.PI;
                 PtMode1.Vel = CirVel;
 
                 PtFifoClear(AxisNo);
+                Thread.Sleep(20);
                 PtCrdCircle(PtMode1.Xc, PtMode1.Yc, PtMode1.Angle, PtMode1.Vel);
                 CSetting_Btn.BackColor = Color.LightGreen;
             }
@@ -1829,10 +1869,8 @@ namespace Motor_Ctrl
         private void InterStart_Btn_Click(object sender, EventArgs e) // 插补启动按钮
         {
             PtStart(AxisNo);
-            while (MotorIsMoving) ;
-            ActRecord("Pt Complete");
-            Thread.Sleep(300);
-            PtFifoClear(AxisNo);
+            //PtFifoClear(AxisNo);
+            //Thread.Sleep(20);
         }
 
         private void InterMode1_Rdb_CheckedChanged(object sender, EventArgs e) // 模式1选择
@@ -1852,7 +1890,7 @@ namespace Motor_Ctrl
 
         private void About_Btn_Click(object sender, EventArgs e) // 关于按钮
         {
-            InterCircleTest();
+            //InterCircleTest();
 
         }
 

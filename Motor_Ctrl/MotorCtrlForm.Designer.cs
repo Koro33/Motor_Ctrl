@@ -110,6 +110,8 @@
             this.InterMode2_Rdb = new System.Windows.Forms.RadioButton();
             this.InterMode1_Rdb = new System.Windows.Forms.RadioButton();
             this.InterMode2_Gbx = new System.Windows.Forms.GroupBox();
+            this.comboBox2 = new System.Windows.Forms.ComboBox();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.label12 = new System.Windows.Forms.Label();
             this.label13 = new System.Windows.Forms.Label();
             this.label14 = new System.Windows.Forms.Label();
@@ -375,16 +377,16 @@
             this.ActLogTb.Name = "ActLogTb";
             this.ActLogTb.ReadOnly = true;
             this.ActLogTb.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.ActLogTb.Size = new System.Drawing.Size(333, 120);
+            this.ActLogTb.Size = new System.Drawing.Size(411, 120);
             this.ActLogTb.TabIndex = 6;
             // 
             // ActLog_Gbx
             // 
             this.ActLog_Gbx.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             this.ActLog_Gbx.Controls.Add(this.ActLogTb);
-            this.ActLog_Gbx.Location = new System.Drawing.Point(705, 455);
+            this.ActLog_Gbx.Location = new System.Drawing.Point(613, 455);
             this.ActLog_Gbx.Name = "ActLog_Gbx";
-            this.ActLog_Gbx.Size = new System.Drawing.Size(345, 152);
+            this.ActLog_Gbx.Size = new System.Drawing.Size(423, 152);
             this.ActLog_Gbx.TabIndex = 7;
             this.ActLog_Gbx.TabStop = false;
             this.ActLog_Gbx.Text = "日志";
@@ -671,7 +673,7 @@
             this.Back2Zero_Btn.Name = "Back2Zero_Btn";
             this.Back2Zero_Btn.Size = new System.Drawing.Size(288, 30);
             this.Back2Zero_Btn.TabIndex = 55;
-            this.Back2Zero_Btn.Text = "回零点";
+            this.Back2Zero_Btn.Text = "回到零点位置";
             this.Back2Zero_Btn.UseVisualStyleBackColor = true;
             this.Back2Zero_Btn.Click += new System.EventHandler(this.Back2Zero_Btn_Click);
             // 
@@ -990,6 +992,8 @@
             // 
             // InterMode2_Gbx
             // 
+            this.InterMode2_Gbx.Controls.Add(this.comboBox2);
+            this.InterMode2_Gbx.Controls.Add(this.comboBox1);
             this.InterMode2_Gbx.Controls.Add(this.label12);
             this.InterMode2_Gbx.Controls.Add(this.label13);
             this.InterMode2_Gbx.Controls.Add(this.label14);
@@ -1007,6 +1011,28 @@
             this.InterMode2_Gbx.Size = new System.Drawing.Size(207, 213);
             this.InterMode2_Gbx.TabIndex = 14;
             this.InterMode2_Gbx.TabStop = false;
+            // 
+            // comboBox2
+            // 
+            this.comboBox2.FormattingEnabled = true;
+            this.comboBox2.Items.AddRange(new object[] {
+            "优弧",
+            "劣弧"});
+            this.comboBox2.Location = new System.Drawing.Point(108, 164);
+            this.comboBox2.Name = "comboBox2";
+            this.comboBox2.Size = new System.Drawing.Size(88, 28);
+            this.comboBox2.TabIndex = 15;
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "顺弧",
+            "逆弧"});
+            this.comboBox1.Location = new System.Drawing.Point(10, 164);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(88, 28);
+            this.comboBox1.TabIndex = 14;
             // 
             // label12
             // 
@@ -1124,7 +1150,7 @@
             this.InterMode1_Gbx.Controls.Add(this.label27);
             this.InterMode1_Gbx.Location = new System.Drawing.Point(6, 96);
             this.InterMode1_Gbx.Name = "InterMode1_Gbx";
-            this.InterMode1_Gbx.Size = new System.Drawing.Size(202, 184);
+            this.InterMode1_Gbx.Size = new System.Drawing.Size(202, 213);
             this.InterMode1_Gbx.TabIndex = 7;
             this.InterMode1_Gbx.TabStop = false;
             // 
@@ -1142,9 +1168,9 @@
             this.label28.AutoSize = true;
             this.label28.Location = new System.Drawing.Point(149, 93);
             this.label28.Name = "label28";
-            this.label28.Size = new System.Drawing.Size(37, 20);
+            this.label28.Size = new System.Drawing.Size(24, 20);
             this.label28.TabIndex = 12;
-            this.label28.Text = "Rad";
+            this.label28.Text = "度";
             // 
             // label17
             // 
@@ -1314,7 +1340,7 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.BackgroundImageLayout = System.Windows.Forms.ImageLayout.None;
-            this.ClientSize = new System.Drawing.Size(1062, 619);
+            this.ClientSize = new System.Drawing.Size(1048, 619);
             this.Controls.Add(this.About_Btn);
             this.Controls.Add(this.PosVel_Gbx);
             this.Controls.Add(this.Alarm_Gbx);
@@ -1480,6 +1506,8 @@
         private System.Windows.Forms.Button CSetting_Btn;
         private System.Windows.Forms.Label CPos_Lb;
         private System.Windows.Forms.Label label38;
+        private System.Windows.Forms.ComboBox comboBox2;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
 
